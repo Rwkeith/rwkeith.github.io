@@ -13,8 +13,7 @@ date: 2021-12-23T22:22:12.183Z
 Various anti-cheat vendors use several methods to detect cheats and prevent programs from modifying or tampering with the game process. This series will cover known heuristic methods being used today. Keep in mind  our topic is in context with windows internals. Today this post is on thread detection executing in Kernel.  Lets dive in!
 
 ### About Threads
-
-The threads object is identified by a structure called `_ETHREAD`
+First we will look at some undocumented structures used by ntoskrnl.  A thread object is identified by a structure called `_ETHREAD`
 
 ```
 struct _ETHREAD
@@ -38,13 +37,31 @@ struct _ETHREAD
 }
 ```
 
-Here we see `Tcb` and `StartAddress` which hold some useful information about the thread in our case.  Examining `_KTHREAD`
+Here we see `Tcb` and `StartAddress` which hold some useful information about the thread in our case.  Here's an except of `_KTHREAD`
 
 ```
+struct _KTHREAD
+{
+    struct _DISPATCHER_HEADER Header;                                       //0x0
+    ...
 
+
+    VOID* InitialStack;                                                     //0x28
+    VOID* volatile StackLimit;                                              //0x30
+    VOID* StackBase;                                                        //0x38
+    ULONGLONG ThreadLock;                                                   //0x40
+    ...
+    VOID* KernelStack;
+    ...
+
+}
 ```
+
+Due to the nature of being undocumented, these offsets will vary between versions.  What's important here is that we have thread attributes that can used to determine if a thread is legitimate or not.
 
 You'll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run `jekyll serve`, which launches a web server and auto-regenerates your site when a file is updated.
+
+### Suspicious Threads
 
 To add new posts, simply add a file in the `_posts` directory that follows the convention `YYYY-MM-DD-name-of-post.ext` and includes the necessary front matter. Take a look at the source for this post to get an idea about how it works.
 
