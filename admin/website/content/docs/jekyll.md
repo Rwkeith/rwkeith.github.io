@@ -264,7 +264,7 @@ items:
     link: /staff.html
 ```
 
-You'll need to update `_includes/navigation.html` accordingly. `{% for item in site.data.navigation %}` should be changed to `{% for item in site.data.navigation.items %}`. When you're done, the nav html should look like this.
+
 
 ```html
 <nav>

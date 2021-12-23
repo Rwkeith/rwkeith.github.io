@@ -531,16 +531,7 @@ You can apply transformations on fields in a summary string template using filte
 
 Example config:
 
-```yaml
-collections:
-  - name: 'posts'
-    label: 'Posts'
-    folder: '_posts'
-    summary: "{{title | upper}} - {{date | date('YYYY-MM-DD')}}"
-    fields:
-      - { label: 'Title', name: 'title', widget: 'string' }
-      - { label: 'Publish Date', name: 'date', widget: 'datetime' }
-```
+
 
 The above config will transform the title field to uppercase and format the date field using `YYYY-MM-DD` format.
 Available transformations are `upper`, `lower`, `date('<format>'), default('defaultValue') and ternary('valueForTrue','valueForFalse')`
