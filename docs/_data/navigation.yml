@@ -24,8 +24,8 @@ main:
     url: /docs/quick-start-guide/
   - title: "About"
     url: /about/
-  - title: "Sample Posts"
-    url: /year-archive/
+  - title: "Sample Posts!!"
+    url: /year-archives/
   - title: "Sample Collections"
     url: /collection-archive/
   - title: "Terms &amp; Privacy Policy"
@@ -60,7 +60,7 @@ docs:
         url: /docs/layouts/
   - title: Content
     children:
-      - title: "Working with Posts"
+      - title: "Working with Posts!!"
         url: /docs/posts/
       - title: "Working with Pages"
         url: /docs/pages/
