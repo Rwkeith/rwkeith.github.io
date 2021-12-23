@@ -57,11 +57,28 @@ struct _KTHREAD
 }
 ```
 
-Due to the nature of being undocumented, these offsets can vary between versions. Signatures can be created though to find the correct offsets which we will see later. Above we have `KernelStack` which holds a pointer to the threads' stack.
+Due to the nature of being undocumented, these offsets can vary between versions. Signatures can be created though to find the correct offsets which we will see later. Above we have `KernelStack` which holds a pointer to the threads' stack.  
 
 ### Detecting Suspicious Threads
-Taking the previous information, and combining it with the common and well-known un, we can This heuristic detection method is most useful for threads that are most often running in kernel memory.  
+Taking the previous information, we can simply use `ZwQuerySystemInformation` with class `SystemModuleInformation` to enumerate all the system modules and compare the address ranges to the values in the stacks we are examining.  If any of thread's rip or rsp values lie outside of the legit module ranges, we can flag this as suspicious behavior.  Below is a simple way to check for this.
 
+```cpp
+BOOLEAN CheckModulesForAddress(UINT64 address, PRTL_PROCESS_MODULES systemMods)
+{
+    RTL_PROCESS_MODULE_INFORMATION sysMod;
+    for (size_t i = 0; i < systemMods->NumberOfModules; i++)
+    {
+        sysMod = systemMods->Modules[i];
+
+        if ((UINT64)sysMod.ImageBase < address && address < ((UINT64)sysMod.ImageBase + sysMod.ImageSize))
+        {
+
+            return SUCCESS;
+        }
+    }
+    return FAIL;
+}
+```
 
 Jekyll also offers powerful support for code snippets:
 
