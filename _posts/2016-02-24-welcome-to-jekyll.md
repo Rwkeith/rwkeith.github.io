@@ -57,13 +57,11 @@ struct _KTHREAD
 }
 ```
 
-Due to the nature of being undocumented, these offsets will vary between versions.  What's important here is that we have thread attributes that can used to determine if a thread is legitimate or not.
+Due to the nature of being undocumented, these offsets can vary between versions. Signatures can be created though to find the correct offsets which we will see later. Above we have `KernelStack` which holds a pointer to the threads' stack.
 
-You'll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run `jekyll serve`, which launches a web server and auto-regenerates your site when a file is updated.
+### Detecting Suspicious Threads
+Taking the previous information, and combining it with the common and well-known un, we can This heuristic detection method is most useful for threads that are most often running in kernel memory.  
 
-### Suspicious Threads
-
-To add new posts, simply add a file in the `_posts` directory that follows the convention `YYYY-MM-DD-name-of-post.ext` and includes the necessary front matter. Take a look at the source for this post to get an idea about how it works.
 
 Jekyll also offers powerful support for code snippets:
 
