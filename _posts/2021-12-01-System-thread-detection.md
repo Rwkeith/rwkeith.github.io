@@ -11,11 +11,11 @@ classes: wide
 ---
 ### Overview
 
-Various anti-cheat vendors use several methods to detect cheats and prevent programs from modifying or tampering with the game process. This series will cover known heuristic methods being used today. Our topic will be in context with windows internals. Today this post is on thread detection executing in Kernel.  Lets dive in!
+Various anti-cheat vendors use several methods to detect cheats and prevent programs from modifying or tampering with the game process. This series will cover known heuristic methods being used today. Our topic will be in context with windows internals. Today this post is on detecting threads executing in Kernel memory.  Lets dive in!
 
 ### About Threads
 
-First we will look at some undocumented structures used by ntoskrnl.  A thread object is identified by a structure called `_ETHREAD`
+First we will look at some undocumented structures used by `ntoskrnl.exe`.  A thread object is identified by a structure called `_ETHREAD`
 
 ```
 struct _ETHREAD
@@ -60,7 +60,7 @@ struct _KTHREAD
 }
 ```
 
-Due to the nature of these being undocumented, the offsets can vary between versions. Signatures can be created though to find the correct offset locations. Above we have `KernelStack` which holds a pointer to the threads' stack. This will be used to determine if the thread is suspicious. Now we must enumerate through the threads. Thread ID's are a multiple of 4.  We also check to ensure that the thread belongs to the system process by getting the procID of the thread and comparing it to our thread's procID.
+Due to the nature of these structures being undocumented, the offsets can vary between windows versions. Signatures can be created though to find the correct offset locations. Above, we have `KernelStack` which holds a pointer to the threads' stack. This will be used to determine if the thread is suspicious. Now we must enumerate through the threads. When using thread id's, note that they are a multiple of 4. We also check to ensure that the thread belongs to the system process by getting the process id of the thread and comparing it to our thread's process id.
 
 ```cpp
 // current process is the system process
@@ -77,7 +77,7 @@ for (size_t currentThreadId = 4; currentThreadId < 0x5000; currentThreadId += 4)
 }
 ```
 
-We can't copy a thread's stack while it's executing. The thread needs to be in a `Waiting` state. To do this safely, we first acquire a lock to the thread.  This means that as we are enumerating the threads, we will have to skip stack examination of threads that are not Waiting.  
+We shouldn't try to copy a thread's stack while it's executing as the stack will constantly be changing. The thread needs to be in a `Waiting` state. To do this safely, we first acquire a lock to the thread. This means that as we enumerate the threads, we have to skip stack examination of threads that are not Waiting.
 
 ```cpp
 BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
@@ -113,10 +113,31 @@ BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
 }
 ```
 
-If the thread is currently in a `Running` state, locking it won't halt the thread. This is why we also have to check if the thread is in a waiting state after its been locked. You could use `NtSuspendThread` and `NtResumeThread` to change the thread's state, however this is probably ill-advised for system stability concerns. The `State` member in `_KTHREAD` holds the thread's current state. To find the offset, we can scan for it in a function that references it. `KeAlertThread` seems like it would need to access that member. Knowing the correct offset already and then loading \`ntoskrnl.exe\` into Ghidra, we can quickly see where this function accesses this member
+If the thread is in a `Running` state, locking it won't halt the thread. This is why we need to check if the thread is in a waiting state after its been locked. You could use `NtSuspendThread` and `NtResumeThread` to change the thread's state. However, this is probably ill-advised for system stability concerns. The `State` member in `_KTHREAD` holds the thread's current state. To find the offset, we can scan for it in a function that references it. `KeAlertThread` seems like it would need to access that member. Knowing the correct offset already and then loading `ntoskrnl.exe` into Ghidra, we can quickly see where this function accesses this member
 
 ![](/assets/images/kealertthreadstateoffset.png "KeAlertThread")
 
+![](/assets/images/threadstateaccessinstr.png "thread state member access")
+
+The offset value here is `0x184`. Now it's trivial to write a function to pattern match the bytes at this instruction and pull the offset bytes. Here's a quick and dirty example
+
+```cpp
+BOOLEAN threadStatePatternMatch(_In_ BYTE* address, _Inout_ UINT32** outOffset, _In_ UINT32 range)
+{
+    for (BYTE* currByte = address; currByte < (address + range); currByte++)
+    {
+        if (currByte[0] == threadStatePattern[0]
+            && currByte[1] == threadStatePattern[1]
+            && currByte[6] == threadStatePattern[6]
+            && currByte[7] == threadStatePattern[7])
+        {
+            *outOffset = (UINT32*)((BYTE*)currByte + 2);
+            return SUCCESS;
+        }
+    }
+    return FAIL;
+}
+```
 
 
 Here's the checks the thread needs to pass in order to be examined
