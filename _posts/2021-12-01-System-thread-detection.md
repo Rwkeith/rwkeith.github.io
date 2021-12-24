@@ -59,7 +59,51 @@ struct _KTHREAD
 }
 ```
 
-Due to the nature of being undocumented, these offsets can vary between versions. Signatures can be created though to find the correct offsets which we will see later. Above we have `KernelStack` which holds a pointer to the threads' stack.  
+Due to the nature of being undocumented, these offsets can vary between versions. Signatures can be created though to find the correct offsets. Above we have `KernelStack` which holds a pointer to the threads' stack. This information will be used to determine if the thread is suspicious.  One important thing to note is that we cannot copy a thread's stack while it is executing. The thread needs to be in a `Waiting` state.  To do this safely, we can first acquire a lock to the thread like so.
+
+```cpp
+BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
+{
+    KIRQL currentIrql;
+    UINT64 ThreadLockOffset;
+    KSPIN_LOCK* threadLock;
+
+    if (Thread && Irql)
+    {
+
+       ThreadLockOffset = GetThreadLockOffset();
+       threadLock = (PKSPIN_LOCK)((BYTE*)Thread + ThreadLockOffset);
+       if (threadLock && ThreadLockOffset)
+       {
+           currentIrql = KeGetCurrentIrql();
+
+           // set cr8[3:0] (interrupt mask)
+           __writecr8(0xC);
+           *Irql = currentIrql;
+           // raise our IRQL so our thread doesn't get interrupted
+
+
+           KeAcquireSpinLockAtDpcLevel(threadLock);
+
+
+           currentIrql = KeGetCurrentIrql();
+
+
+           return SUCCESS;
+       }
+       else
+       {
+           return FAIL;
+       }
+
+
+    }
+    else
+    {
+        return FAIL;
+    }
+}
+```
 
 ### Detecting Suspicious Threads
 
@@ -83,3 +127,9 @@ BOOLEAN CheckModulesForAddress(UINT64 address, PRTL_PROCESS_MODULES systemMods)
     return FAIL;
 }
 ```
+
+
+
+
+
+### Mitigations
