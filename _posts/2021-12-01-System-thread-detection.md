@@ -40,7 +40,7 @@ struct _ETHREAD
 }
 ```
 
-Here we see `Tcb` and `Win32StartAddress` which both hold some useful information about the thread in our case.  Here's an except of `_KTHREAD`
+Here we see `Tcb` and `Win32StartAddress` which both hold some useful information about the thread in our case.  Here's an excerpt of `_KTHREAD`
 
 ```
 struct _KTHREAD
