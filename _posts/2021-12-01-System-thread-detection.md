@@ -14,6 +14,7 @@ classes: wide
 Various anti-cheat vendors use several methods to detect cheats and prevent programs from modifying or tampering with the game process. This series will cover known heuristic methods being used today. Keep in mind  our topic is in context with windows internals. Today this post is on thread detection executing in Kernel.  Lets dive in!
 
 ### About Threads
+
 First we will look at some undocumented structures used by ntoskrnl.  A thread object is identified by a structure called `_ETHREAD`
 
 ```
@@ -61,6 +62,7 @@ struct _KTHREAD
 Due to the nature of being undocumented, these offsets can vary between versions. Signatures can be created though to find the correct offsets which we will see later. Above we have `KernelStack` which holds a pointer to the threads' stack.  
 
 ### Detecting Suspicious Threads
+
 Taking the previous information, we can simply use `ZwQuerySystemInformation` with class `SystemModuleInformation` to enumerate all the system modules and compare the address ranges to the values in the stacks we are examining.  If any of thread's rip or rsp values lie outside of the legit module ranges, we can flag this as suspicious behavior.  Below is a simple way to check for this.
 
 ```cpp
@@ -74,9 +76,6 @@ BOOLEAN CheckModulesForAddress(UINT64 address, PRTL_PROCESS_MODULES systemMods)
 
         if ((UINT64)sysMod.ImageBase < address && address < ((UINT64)sysMod.ImageBase + sysMod.ImageSize))
         {
-
-
-
             return SUCCESS;
         }
     }
@@ -84,15 +83,3 @@ BOOLEAN CheckModulesForAddress(UINT64 address, PRTL_PROCESS_MODULES systemMods)
     return FAIL;
 }
 ```
-
-Jekyll also offers powerful support for code snippets:
-
-```cpp
-def print_hi(name)
-  puts "Hi, #{name}"
-end
-print_hi('Tom')
-#=> prints 'Hi, Tom' to STDOUT.
-```
-
-Check out the [Jekyll docs](http://jekyllrb.com/docs/home) for more info on how to get the most out of Jekyll. File all bugs/feature requests at [Jekyll's GitHub repo](https://github.com/jekyll/jekyll). If you have questions, you can ask them on [Jekyll Talk](https://talk.jekyllrb.com/).
