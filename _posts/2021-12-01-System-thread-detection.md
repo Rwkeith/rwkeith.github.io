@@ -105,9 +105,21 @@ BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
 }
 ```
 
+If the thread is currently in a `Running` state, locking it won't halt the thread. This is why we also have to check if the thread is in a waiting state after its been locked. You could use `NtSuspendThread` and `NtResumeThread` to change the thread's state, however this is probably ill-advised for system stability concerns.  Here's the checks the thread needs to pass in order to be examined
+
+```cpp
+ if (isSystemThread             // is a system thread
+
+        && threadStateOffset    // found all the offsets we needed for stack examination
+        && kernelStackOffset
+        && stackBase
+        && threadStackLimit
+        && (PKTHREAD)threadObject != KeGetCurrentThread())  // the thread being examined isn't ours
+```
+
 ### Detecting Suspicious Threads
 
-Taking the previous information, we can simply use `ZwQuerySystemInformation` with class `SystemModuleInformation` to enumerate all the system modules and compare the address ranges to the values in the stacks we are examining.  If any of thread's rip or rsp values lie outside of the legit module ranges, we can flag this as suspicious behavior.  Below is a simple way to check for this.
+Taking the previous information, we can simply use `ZwQuerySystemInformation` with class `SystemModuleInformation` to enumerate all the system modules and compare the address ranges to the values in the stacks we are examining.  If any of thread's rip or rsp values lie outside of the legit module ranges, we can flag this as suspicious behavior.  Below is a simple way to check.
 
 ```cpp
 BOOLEAN CheckModulesForAddress(UINT64 address, PRTL_PROCESS_MODULES systemMods)
