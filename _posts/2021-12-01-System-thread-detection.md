@@ -70,33 +70,23 @@ BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
 
     if (Thread && Irql)
     {
-
        ThreadLockOffset = GetThreadLockOffset();
        threadLock = (PKSPIN_LOCK)((BYTE*)Thread + ThreadLockOffset);
        if (threadLock && ThreadLockOffset)
        {
            currentIrql = KeGetCurrentIrql();
-
            // set cr8[3:0] (interrupt mask)
            __writecr8(0xC);
            *Irql = currentIrql;
            // raise our IRQL so our thread doesn't get interrupted
-
-
            KeAcquireSpinLockAtDpcLevel(threadLock);
-
-
            currentIrql = KeGetCurrentIrql();
-
-
            return SUCCESS;
        }
        else
        {
            return FAIL;
        }
-
-
     }
     else
     {
