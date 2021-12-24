@@ -22,4 +22,4 @@ collections:
       - {label: "Title", name: "title", widget: "string"}
       - {label: "Publish Date", name: "date", widget: "datetime"}
       - {label: "Body", name: "body", widget: "markdown"}
-      # - {label: "Classes", name: "classes", value: "wide" }
+      - {label: "Classes", name: "classes", value: "wide" }
