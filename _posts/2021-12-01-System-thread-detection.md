@@ -143,12 +143,11 @@ BOOLEAN threadStatePatternMatch(_In_ BYTE* address, _Inout_ UINT32** outOffset, 
 Here's the checks the thread needs to pass in order to be examined
 
 ```cpp
-if (isSystemThread             // is a system thread
-        && threadStateOffset       // found all the offsets we needed for stack examination
-        && kernelStackOffset
-        && stackBase
-        && threadStackLimit
-        && (PKTHREAD)threadObject != KeGetCurrentThread())  // the thread being examined isn't ours
+if (isSystemThread                                       // is a system thread
+        && (kernelStack > stackLimit)                    // kernel stack is within bounds of stack size
+        && (kernelStack < stackBase)                     // stack grows downward
+        && *(threadStateOffset + threadObject) == KTHREAD_STATE::Waiting  // thread is waiting
+        && (PKTHREAD)threadObject != KeGetCurrentThread())  // the thread isn't ours
 {
        StackWalkThread(threadObject, &stackBuffer);
 }
