@@ -77,8 +77,6 @@ for (size_t currentThreadId = 4; currentThreadId < 0x5000; currentThreadId += 4)
 }
 ```
 
-
-
 We can't copy a thread's stack while it's executing. The thread needs to be in a `Waiting` state. To do this safely, we first acquire a lock to the thread.  This means that as we are enumerating the threads, we will have to skip stack examination of threads that are not Waiting.  
 
 ```cpp
@@ -115,7 +113,13 @@ BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
 }
 ```
 
-If the thread is currently in a `Running` state, locking it won't halt the thread. This is why we also have to check if the thread is in a waiting state after its been locked. You could use `NtSuspendThread` and `NtResumeThread` to change the thread's state, however this is probably ill-advised for system stability concerns.  Here's the checks the thread needs to pass in order to be examined
+If the thread is currently in a `Running` state, locking it won't halt the thread. This is why we also have to check if the thread is in a waiting state after its been locked. You could use `NtSuspendThread` and `NtResumeThread` to change the thread's state, however this is probably ill-advised for system stability concerns. The `State` member in `_KTHREAD` holds the thread's current state. To find the offset, we can scan for it in a function that references it. `KeAlertThread` seems like it would need to access that member. Knowing the correct offset already and then loading \`ntoskrnl.exe\` into Ghidra, we can quickly see where this function accesses this member
+
+![](https://imgur.com/innbNzE)
+
+
+
+Here's the checks the thread needs to pass in order to be examined
 
 ```cpp
 if (isSystemThread             // is a system thread
@@ -176,7 +180,6 @@ if (threadLockOffset)
 }
 ```
 
-
 ### Detecting Suspicious Threads
 
 Taking the previous information, we can simply use `ZwQuerySystemInformation` with class `SystemModuleInformation` to enumerate all the system modules and compare the address ranges to the values in the stacks we are examining.  If any of thread's rip or rsp values lie outside of the legit module ranges, we can flag this as suspicious behavior.  Below is a simple way to check.
@@ -221,13 +224,14 @@ NTSTATUS Utility::GetThreadStartAddr(_In_ PETHREAD threadObject, _Out_ uintptr_t
         LogError("NtQueryInformationThread failed.\n");
         NtClose(hThread);
         return status;
-    }
+    }
+
     *pStartAddr = startAddr;
     NtClose(hThread);
     return STATUS_SUCCESS;
 }
 ```
-Now that we know how to examine a thread and deem it suspicious, we could do further analysis to decide our actions which will be covered in a later article.  Lets move on to how these methods could be mitigated.
 
+Now that we know how to examine a thread and deem it suspicious, we could do further analysis to decide our actions which will be covered in a later article.  Lets move on to how these methods could be mitigated.
 
 ### Mitigations
