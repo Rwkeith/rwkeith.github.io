@@ -17,7 +17,7 @@ Various anti-cheat vendors use several methods to detect cheats and prevent prog
 
 First we will look at some undocumented structures used by `ntoskrnl.exe`.  A thread object is identified by a structure called `_ETHREAD`
 
-```
+```cpp
 struct _ETHREAD
 {
     struct _KTHREAD Tcb;                                                    //0x0
@@ -42,13 +42,11 @@ struct _ETHREAD
 
 Here we see `Tcb` and `Win32StartAddress` which both hold some useful information about the thread in our case.  Here's an excerpt of `_KTHREAD`
 
-```
+```cpp
 struct _KTHREAD
 {
     struct _DISPATCHER_HEADER Header;                                       //0x0
     ...
-
-
     VOID* InitialStack;                                                     //0x28
     VOID* volatile StackLimit;                                              //0x30
     VOID* StackBase;                                                        //0x38
@@ -207,7 +205,6 @@ Taking the previous information, we can simply use `ZwQuerySystemInformation` wi
 ```cpp
 BOOLEAN CheckModulesForAddress(UINT64 address, PRTL_PROCESS_MODULES systemMods)
 {
-
     RTL_PROCESS_MODULE_INFORMATION sysMod;
     for (size_t i = 0; i < systemMods->NumberOfModules; i++)
     {
@@ -218,7 +215,6 @@ BOOLEAN CheckModulesForAddress(UINT64 address, PRTL_PROCESS_MODULES systemMods)
             return SUCCESS;
         }
     }
-
     return FAIL;
 }
 ```
@@ -255,3 +251,5 @@ NTSTATUS Utility::GetThreadStartAddr(_In_ PETHREAD threadObject, _Out_ uintptr_t
 Now that we know how to examine a thread and deem it suspicious, we could do further analysis to decide our actions which will be covered in a later article.  Lets move on to how these methods could be mitigated.
 
 ### Mitigations
+
+### References and Credits
