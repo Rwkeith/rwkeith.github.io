@@ -1,11 +1,12 @@
 backend:
+#  name: git-gateway
   name: git-gateway
-  url : https://rwkeith.github.io
-  repo: Rwkeith/rwkeith.github.io
+#  repo: Rwkeith/rwkeith.github.io
   branch: master # Branch to update (optional; defaults to master)
 # This line should *not* be indented
 publish_mode: editorial_workflow
 media_folder: "assets/images" # Media files will be stored in the repo under assets/images
+
 
 posts:
 
