@@ -115,7 +115,7 @@ BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
 
 If the thread is currently in a `Running` state, locking it won't halt the thread. This is why we also have to check if the thread is in a waiting state after its been locked. You could use `NtSuspendThread` and `NtResumeThread` to change the thread's state, however this is probably ill-advised for system stability concerns. The `State` member in `_KTHREAD` holds the thread's current state. To find the offset, we can scan for it in a function that references it. `KeAlertThread` seems like it would need to access that member. Knowing the correct offset already and then loading \`ntoskrnl.exe\` into Ghidra, we can quickly see where this function accesses this member
 
-![](https://imgur.com/innbNzE)
+![](/assets/images/kealertthreadstateoffset.png "KeAlertThread")
 
 
 
