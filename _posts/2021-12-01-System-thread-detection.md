@@ -11,7 +11,7 @@ classes: wide
 ---
 ### Overview
 
-Various anti-cheat vendors use several methods to detect cheats and prevent programs from modifying or tampering with the game process. This series will cover known heuristic methods being used today. Keep in mind  our topic is in context with windows internals. Today this post is on thread detection executing in Kernel.  Lets dive in!
+Various anti-cheat vendors use several methods to detect cheats and prevent programs from modifying or tampering with the game process. This series will cover known heuristic methods being used today. Our topic will be in context with windows internals. Today this post is on thread detection executing in Kernel.  Lets dive in!
 
 ### About Threads
 
@@ -99,7 +99,7 @@ If the thread is currently in a `Running` state, locking it won't halt the threa
 
 ```cpp
     if (isSystemThread             // is a system thread
-        && threadStateOffset    // found all the offsets we needed for stack examination
+        && threadStateOffset       // found all the offsets we needed for stack examination
         && kernelStackOffset
         && stackBase
         && threadStackLimit
@@ -108,6 +108,8 @@ If the thread is currently in a `Running` state, locking it won't halt the threa
          StackWalkThread(threadObject, &stackBuffer);
     }
 ```
+
+Two key functions are used for unwinding the stack to get the proper rip / rsp values from each frame: `RtlLookupFunctionEntry` and `RtlVirtualUnwind`
 
 ### Detecting Suspicious Threads
 
