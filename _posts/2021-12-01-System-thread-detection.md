@@ -36,10 +36,11 @@ struct _ETHREAD
             VOID* StartAddress;                                             //0x620
         };
     ...   (etc.)
+    VOID* Win32StartAddress;
 }
 ```
 
-Here we see `Tcb` and `StartAddress` which hold some useful information about the thread in our case.  Here's an except of `_KTHREAD`
+Here we see `Tcb` and `Win32StartAddress` which both hold some useful information about the thread in our case.  Here's an except of `_KTHREAD`
 
 ```
 struct _KTHREAD
@@ -59,7 +60,26 @@ struct _KTHREAD
 }
 ```
 
-Due to the nature of being undocumented, these offsets can vary between versions. Signatures can be created though to find the correct offsets. Above we have `KernelStack` which holds a pointer to the threads' stack. This information will be used to determine if the thread is suspicious.  One important thing to note is that we cannot copy a thread's stack while it is executing. The thread needs to be in a `Waiting` state.  To do this safely, we can first acquire a lock to the thread like so.
+Due to the nature of these being undocumented, the offsets can vary between versions. Signatures can be created though to find the correct offset locations. Above we have `KernelStack` which holds a pointer to the threads' stack. This will be used to determine if the thread is suspicious. Now we must enumerate through the threads. Thread ID's are a multiple of 4.  We also check to ensure that the thread belongs to the system process by getting the procID of the thread and comparing it to our thread's procID.
+
+```cpp
+// current process is the system process
+thisEPROC = pPsGetCurrentProcess();
+for (size_t currentThreadId = 4; currentThreadId < 0x5000; currentThreadId += 4)
+{
+    status = pPsLookupThreadByThreadId((HANDLE)currentThreadId, &threadObject);
+
+    processObject = pIoThreadToProcess(threadObject);
+    processID = pPsGetProcessId(processObject);
+
+    if (processID == systemProcId)
+       // do checks...
+}
+```
+
+
+
+We can't copy a thread's stack while it's executing. The thread needs to be in a `Waiting` state. To do this safely, we first acquire a lock to the thread.  This means that as we are enumerating the threads, we will have to skip stack examination of threads that are not Waiting.  
 
 ```cpp
 BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
