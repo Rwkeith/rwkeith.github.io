@@ -98,18 +98,64 @@ BOOL Utility::LockThread(_In_ PKTHREAD Thread, _Out_ KIRQL * Irql)
 If the thread is currently in a `Running` state, locking it won't halt the thread. This is why we also have to check if the thread is in a waiting state after its been locked. You could use `NtSuspendThread` and `NtResumeThread` to change the thread's state, however this is probably ill-advised for system stability concerns.  Here's the checks the thread needs to pass in order to be examined
 
 ```cpp
-    if (isSystemThread             // is a system thread
+if (isSystemThread             // is a system thread
         && threadStateOffset       // found all the offsets we needed for stack examination
         && kernelStackOffset
         && stackBase
         && threadStackLimit
         && (PKTHREAD)threadObject != KeGetCurrentThread())  // the thread being examined isn't ours
-    {
-         StackWalkThread(threadObject, &stackBuffer);
-    }
+{
+       StackWalkThread(threadObject, &stackBuffer);
+}
 ```
 
-Two key functions are used for unwinding the stack to get the proper rip / rsp values from each frame: `RtlLookupFunctionEntry` and `RtlVirtualUnwind`
+Two key functions can be used for unwinding the stack to get the proper rip / rsp values from each frame: `RtlLookupFunctionEntry` and `RtlVirtualUnwind`. The first rip should be within the address range of ntoskrnl since that's where threads are created from.
+
+```cpp
+if (startRip >= ntosTextBase && startRip < ntosTextBase + sectionVa)
+{
+    context->Rip = startRip;
+    context->Rsp = (DWORD64)(stackBuffer + 8);
+    for (size_t i = 0; i < 0x20; i++)
+    {
+        rip = context->Rip;
+        rsp = context->Rsp;
+        stackwalkBuffer->Entry[stackwalkBuffer->EntryCount].RipValue = rip;
+        stackwalkBuffer->Entry[stackwalkBuffer->EntryCount++].RspValue = rsp;
+        if (rip < (UINT64)MmSystemRangeStart || rsp < (UINT64)MmSystemRangeStart)
+            break;
+
+        functionTableEntry = pRtlLookupFunctionEntry(rip, (PDWORD64)&moduleBase, 0);
+                            
+        if (!functionTableEntry)
+            break;
+        pRtlVirtualUnwind(0, moduleBase, context->Rip, functionTableEntry, context, (PVOID*)&handlerData, (PDWORD64)&establisherFrame, 0);
+                            
+        if (!context->Rip)
+        {
+            stackwalkBuffer->Succeeded = 1;
+            break;
+        }
+    }
+}
+```
+
+Now we should also unlock the thread so it can be free to get scheduled again.
+
+```
+threadLockOffset = GetThreadLockOffset();
+threadLock = (KSPIN_LOCK*)((BYTE*)threadObject + threadLockOffset);
+
+if (threadLockOffset)
+{
+    if (threadLock != 0)
+    {
+        KeReleaseSpinLockFromDpcLevel(threadLock);
+        __writecr8(oldIrql);
+    }
+}
+```
+
 
 ### Detecting Suspicious Threads
 
@@ -134,8 +180,34 @@ BOOLEAN CheckModulesForAddress(UINT64 address, PRTL_PROCESS_MODULES systemMods)
 }
 ```
 
+Without relying on the stack, we can also get the thread's start address by simply getting the `Win32StartAddress` value in `_ETHREAD` using `NtQueryInformationTHread` like so
 
+```cpp
+NTSTATUS Utility::GetThreadStartAddr(_In_ PETHREAD threadObject, _Out_ uintptr_t* pStartAddr)
+{
+    *pStartAddr = NULL;
+    HANDLE hThread;
+    NTSTATUS status;
 
+    if (!NT_SUCCESS(status = ObOpenObjectByPointer(threadObject, OBJ_KERNEL_HANDLE, nullptr, GENERIC_READ, *PsThreadType, KernelMode, &hThread))) {
+        LogError("ObOpenObjectByPointer failed.\n");
+        return status;
+    }
+    
+    uintptr_t startAddr = NULL;
+    ULONG returnedBytes;
+    
+    if (!NT_SUCCESS(status = pNtQueryInformationThread(hThread, ThreadQuerySetWin32StartAddress, &startAddr, sizeof(startAddr), &returnedBytes))) {
+        LogError("NtQueryInformationThread failed.\n");
+        NtClose(hThread);
+        return status;
+    }
+    *pStartAddr = startAddr;
+    NtClose(hThread);
+    return STATUS_SUCCESS;
+}
+```
+Now that we know how to examine a thread and deem it suspicious, we could do further analysis to decide our actions which will be covered in a later article.  Lets move on to how these methods could be mitigated.
 
 
 ### Mitigations
