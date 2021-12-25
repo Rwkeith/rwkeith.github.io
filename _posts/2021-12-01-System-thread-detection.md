@@ -15,7 +15,9 @@ Various anti-cheat vendors use several methods to detect cheats and prevent prog
 
 ### About Threads
 
-First we will look at some undocumented structures used by `ntoskrnl.exe`.  A thread object is identified by a structure called `_ETHREAD`
+First we will look at some undocumented structures used by `ntoskrnl.exe`. The (Kernel) Processor Control Block (KPRCB) is a struct that holds information for each logical processor. By reading the `GS` register, you can access the `_ETHREAD` / `_KTHREAD` struct of the currently executing thread on the logical processor.
+
+![](/assets/images/dkom_pross.png "Overview of Nt structs")
 
 ```cpp
 struct _ETHREAD
@@ -137,7 +139,6 @@ BOOLEAN threadStatePatternMatch(_In_ BYTE* address, _Inout_ UINT32** outOffset, 
 }
 ```
 
-
 Here's the checks the thread needs to pass in order to be examined
 
 ```cpp
@@ -182,9 +183,9 @@ if (startRip >= ntosTextBase && startRip < ntosTextBase + sectionVa)
 }
 ```
 
-Now we should also unlock the thread so it can be free to get scheduled again.
+Now unlock the thread so it's free to be scheduled again.
 
-```
+```cpp
 threadLockOffset = GetThreadLockOffset();
 threadLock = (KSPIN_LOCK*)((BYTE*)threadObject + threadLockOffset);
 
