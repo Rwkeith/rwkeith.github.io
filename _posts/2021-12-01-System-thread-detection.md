@@ -58,7 +58,6 @@ struct _KTHREAD
     ...
     VOID* KernelStack;
     ...
-
 }
 ```
 
@@ -251,8 +250,18 @@ NTSTATUS Utility::GetThreadStartAddr(_In_ PETHREAD threadObject, _Out_ uintptr_t
 }
 ```
 
-Now that we know how to examine a thread and deem it suspicious, we could do further analysis to decide our actions which will be covered in a later article.  Lets move on to how these methods could be mitigated.
+Now that we know how to examine a thread and deem it suspicious, we could do further analysis to decide our actions which will be covered in a later article. Lets move on to how these methods could be mitigated.
 
 ### Mitigations
+We can first circument the system thread check by clearing the `SystemThread` bit in `_KTHREAD` which identifies our thread type. The entry point can be changed as well.
+
+```cpp
+    thisKThread = reinterpret_cast<PKTHREAD>(KeGetCurrentThread());
+
+    thisKThread->SystemThread = 0;
+    _ETHREAD* myEThread = reinterpret_cast<_ETHREAD*>(thisThread);
+    myEThread->StartAddress = (PVOID)newWin32StartAddr;
+
+```
 
 ### References and Credits
