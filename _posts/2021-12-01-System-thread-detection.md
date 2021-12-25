@@ -18,12 +18,8 @@ Various anti-cheat vendors use several methods to detect cheats and prevent prog
 First we will look at some undocumented structures used by `ntoskrnl.exe`. The (Kernel) Processor Control Block (KPRCB) is a struct that holds information for each logical processor. By reading the `GS` register, you can access the `_ETHREAD` / `_KTHREAD` struct of the currently executing thread on the logical processor.
 
 <p align="center">
-
 <img width="460" height="300" src="/assets/images/dkom_pross.png">
-
 </p>
-
-![](/assets/images/dkom_pross.png "Overview of Nt structs")
 
 ```cpp
 struct _ETHREAD
