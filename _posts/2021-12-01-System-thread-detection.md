@@ -268,16 +268,13 @@ Below on the right is output from my project Diglett that currently does its bes
 
 ![](/assets/images/diglettspoofed.png)
 
-
-
 Below is the scan output from my project Nomad which currently implements all the above checks, and also has additional checks for threads starting from pool allocations. Here we can see Diglett successfully spoofed its thread information.
 
 ![](/assets/images/nomadscanspoofed.png "Nomad scan spoofed")
 
 ### References and Credits
-
-AdrianVPL (the initial function)
-
-Swiftik (mitigation ideas)
-
-jk2 (talking through problems I had)
+<font size="-1">
+AdrianVPL (stackwalk reference),
+Swiftik (mitigation ideas),
+jk2 (discussion)
+</font>
