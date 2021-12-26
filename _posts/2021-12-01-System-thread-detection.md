@@ -275,3 +275,9 @@ Below is the scan output from my project Nomad which currently implements all th
 ![](/assets/images/nomadscanspoofed.png "Nomad scan spoofed")
 
 ### References and Credits
+
+AdrianVPL (the initial function)
+
+Swiftik (mitigation ideas)
+
+jk2 (talking through problems I had)
