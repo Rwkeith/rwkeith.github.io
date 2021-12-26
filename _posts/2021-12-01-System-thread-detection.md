@@ -257,7 +257,6 @@ We can first circument the system thread check by clearing the `SystemThread` bi
 
 ```cpp
     thisKThread = reinterpret_cast<PKTHREAD>(KeGetCurrentThread());
-
     thisKThread->SystemThread = 0;
     _ETHREAD* myEThread = reinterpret_cast<_ETHREAD*>(thisThread);
     myEThread->StartAddress = (PVOID)newWin32StartAddr;
