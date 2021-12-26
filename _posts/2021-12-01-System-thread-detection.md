@@ -264,11 +264,11 @@ We can circumvent the system thread check by clearing the `SystemThread` bit in 
     myEThread->Win32StartAddress = (PVOID)newWin32StartAddr;
 ```
 
-Below on the right is output from my project Diglett that currently does its best to evade and hide from anti-cheat software's heuristic detection methods. To the left, those familiar will notice a very popular mapper is being used to manually map Diglett.
+Below on the right is output from project Diglett that currently does its best to evade and hide from anti-cheat software's heuristic detection methods. To the left, those familiar will notice a very popular mapper is being used to manually map Diglett.
 
 ![](/assets/images/diglettspoofed.png)
 
-Below is the scan output from my project Nomad which currently implements all the above checks, and also has additional checks for threads starting from pool allocations. Here we can see Diglett successfully spoofed its thread information.
+Below is the scan output from project Nomad which currently implements all the above checks, and also has additional checks for threads starting from pool allocations. Here we can see Diglett successfully spoofed its thread information.
 
 ![](/assets/images/nomadscanspoofed.png "Nomad scan spoofed")
 
