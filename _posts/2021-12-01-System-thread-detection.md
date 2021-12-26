@@ -274,7 +274,7 @@ Below is the scan output from my project Nomad which currently implements all th
 
 ### Conclusion
 
-This is just one technique for using heuristics to profile running programs that have suspicious behavior. The focus here was for threads running in the context of the System process. This is useful for mapped drivers that avoid communication to user-land and perform all their functionality in kernel. The next article will focus on memory detection methods.  Thanks for reading!
+This is just one technique for using heuristics to profile running programs that have suspicious behavior. The focus here was for threads running in the context of the System process. This is useful for manually mapped drivers that avoid communication to user-land and perform all their functionality in kernel. The next article will focus on memory detection methods.  Thanks for reading!
 
 ### References and Credits
 
