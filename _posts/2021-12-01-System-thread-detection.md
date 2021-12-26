@@ -253,14 +253,25 @@ NTSTATUS Utility::GetThreadStartAddr(_In_ PETHREAD threadObject, _Out_ uintptr_t
 Now that we know how to examine a thread and deem it suspicious, we could do further analysis to decide our actions which will be covered in a later article. Lets move on to how these methods could be mitigated.
 
 ### Mitigations
-We can first circument the system thread check by clearing the `SystemThread` bit in `_KTHREAD` which identifies our thread type. The entry point can be changed as well.
+
+We can circumvent the system thread check by clearing the `SystemThread` bit in `_KTHREAD` which identifies our thread type. The entry point can be changed as well.  We can change the `StartAddress`
 
 ```cpp
     thisKThread = reinterpret_cast<PKTHREAD>(KeGetCurrentThread());
     thisKThread->SystemThread = 0;
     _ETHREAD* myEThread = reinterpret_cast<_ETHREAD*>(thisThread);
     myEThread->StartAddress = (PVOID)newWin32StartAddr;
-
+    myEThread->Win32StartAddress = (PVOID)newWin32StartAddr;
 ```
+
+Below on the right is output from my project Diglett that currently does its best to evade and hide from anti-cheat software's heuristic detection methods. To the left, those familiar will notice a very popular mapper is being used to manually map Diglett.
+
+![](/assets/images/diglettspoofed.png)
+
+
+
+Below is the scan output from my project called Nomad which currently implements all the above checks, and also has additional checks for threads starting from pool allocations. Here we can see Diglett successfully spoofed its thread information.
+
+![](/assets/images/nomadscanspoofed.png "Nomad scan spoofed")
 
 ### References and Credits
