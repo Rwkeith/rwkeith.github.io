@@ -270,7 +270,7 @@ Below on the right is output from my project Diglett that currently does its bes
 
 
 
-Below is the scan output from my project called Nomad which currently implements all the above checks, and also has additional checks for threads starting from pool allocations. Here we can see Diglett successfully spoofed its thread information.
+Below is the scan output from my project Nomad which currently implements all the above checks, and also has additional checks for threads starting from pool allocations. Here we can see Diglett successfully spoofed its thread information.
 
 ![](/assets/images/nomadscanspoofed.png "Nomad scan spoofed")
 
