@@ -13,7 +13,7 @@ Kernel mode programming refers to kernel device drivers running in kernel mode/s
 
 
 
-One of the biggest takeaways that will save you headaches is that when IRQL is >= dispatch-level, the memory you access must be in RAM.  Otherwise, you will encounter an unhandled page-fault. The scheduler which runs at dispatch-level (2), will not be able to wake since the faulting thread is running at the same IRQL and can't be interrupted. By default, you can assume you are at passive-level (0). Also note, that Structured Exception Handled (provided by windows to handle exceptions), will not work when IRQL >= dispatch-level, or when your driver is not mapped and loaded properly by the windows loader :)
+One of the biggest takeaways that will save you headaches is that when IRQL is >= dispatch-level, the memory you access must be in RAM.  Otherwise, you will encounter an unhandled page-fault. The scheduler which runs at dispatch-level (2), will not be able to wake since the faulting thread is running at the same IRQL and can't be interrupted. By default, you can assume you are at passive-level (0). Also note, that Structured Exception Handled (provided by default to handle exceptions), will not work when IRQL >= dispatch-level or when your driver is not mapped and loaded properly by the windows loader :)
 
 People can have confusion on when it's necessary to write code for your *driver* versus code that runs on the *client*.  I'll be laying out the core fundamentals here and these can be adjusted based on your needs.  Also, we will review the types of communication possible and implement one of these ourselves today :)
 
