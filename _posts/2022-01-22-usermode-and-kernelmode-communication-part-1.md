@@ -9,14 +9,14 @@ Kernel mode programming refers to kernel device drivers running in kernel mode/s
 
 ![](/assets/images/kernel_vs_user.png)
 
+*Credit:  Pavel Yosifovich*
+
+
+
+One of the biggest takeaways that will save you headaches is that when IRQL is >= 2, the memory you access must be in RAM.  Otherwise, you will encounter an unhandled page-fault. The scheduler which runs at dispatch-level (2), will not be able to wake since the faulting thread is running at the same IRQL and can't be interrupted.
+
 People can have confusion on when it's necessary to write code for your *driver* versus code that runs on the *client*.  I'll be laying out the core fundamentals here and these can be adjusted based on your needs.  Also, we will review the types of communication possible and implement one of these ourselves today :)
 
-
-
-###  When to Communicate?
-
-
-
-
+### When to Communicate?
 
 ### Types of Communication
