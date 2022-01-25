@@ -13,10 +13,14 @@ Kernel mode programming refers to kernel device drivers running in kernel mode/s
 
 One of the biggest takeaways that can save headaches is that when IRQL is >= dispatch-level, the memory accessed must be resident  Otherwise, an unhandled page-fault will occur. The scheduler which runs at dispatch-level, will not be able to context-switch since the faulting thread is running at the same IRQL and therefore can't be interrupted. By default, userspace applications and drivers run at passive-level. Another note is that structured exception handling (SEH), will not work when IRQL >= dispatch-level.
 
-People can have confusion on when it's necessary to write code for the *driver* versus code that runs on the *client*.  I'll be laying out the core fundamentals here and these can be adjusted based on needs.  Also, we will review the types of communication possible and implement one of these ourselves today :)
+People can have confusion on when it's necessary to write code for the *driver* versus code that runs on the *client*.  I'll be laying out the core fundamentals here and these can be adjusted based on needs.  Also, we will review the types of communication possible and implement one of these ourselves today.  I **highly** recommend [this](https://voidsec.com/windows-drivers-reverse-engineering-methodology/) article supplement any further questions on the topic of drivers and getting started.
 
 ### How Communication Works
 
 Some have had the idea or asked, "Why not write all my code in the driver and call it a day?". In the end, it depends on what functionality the developer needs to provide and what they're willing to sacrifice. It is entirely possible to have a kernel-mode driver without a client, but we will save that for another guide in the future. The normal interface for client and driver communication is handled by the Kernel-Mode I/O Manager. IRP packets are used to send commands and data between them. In order for this interface to work, there needs be a driver object created which is done automatically when the driver is loaded. Things like, manual mapping, don't create driver objects. This is because that instead of using the standard provided mechanism to load a driver, which must be signed, a kernel mapper will: allocate memory in the kernel, copy the image to this memory, and then create a new thread that will then run the entry point of the image. 
 
-### Types of Communication
+### Our Scenario
+
+In our situation, we're going to have a manually mapped driver in the kernel.  Here's what this will look like..
+
+![](/assets/images/userkernel-copy-of-communication.drawio.png)
