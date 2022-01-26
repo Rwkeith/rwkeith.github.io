@@ -104,4 +104,6 @@ NTSTATUS Hk_DeviceControl(PDEVICE_OBJECT tcpipDevObj, PIRP Irp)
 }
 ```
 
-After all this is complete, we now have client to kernel communication without creating a driver object.
+After all this is complete, we now have client to kernel communication without creating a driver object. Here's the end result with Diglett making 3 hooks in the driver object.
+
+![](/assets/images/diglettdrvobjhooks.png)
