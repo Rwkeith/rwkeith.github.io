@@ -1,5 +1,5 @@
 ---
-title: "Usermode and Kernelmode Communication:  Part 1"
+title: "User to Kernel Mode Communication:  Part 1"
 date: 2022-01-22T11:49:59.552Z
 classes: wide
 ---
