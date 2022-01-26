@@ -61,4 +61,47 @@ for (int i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++) {
 }
 ```
 
-Now, when the client makes a `DeviceIoControl` 
+Now, when any usermode application makes a `DeviceIoControl` call using a handle to the Null driver's device object, it will invoke `Hk_DeviceControl`. Since any program could be executing our hook, we need to filter out the calls. We can use the data passed in through the Irp packet processed by the I/O manager from our client. The IoControlCode can be defined to something unique for our purposes.
+
+```c
+NTSTATUS Hk_DeviceControl(PDEVICE_OBJECT tcpipDevObj, PIRP Irp)
+{
+    // Get Irp
+    auto stack = IoGetCurrentIrpStackLocation(Irp);
+    auto status = STATUS_SUCCESS;
+
+    switch (stack->Parameters.DeviceIoControl.IoControlCode)
+    {
+      // our unique code
+      case IOCTL_ECHO_REQUEST: {
+        LogInfo("IOCTL_ECHO_REQUEST received from our Client!\n");
+        if (stack->Parameters.DeviceIoControl.InputBufferLength < sizeof(ECHO_DATA))
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        auto data = (PECHO_DATA)stack->Parameters.DeviceIoControl.Type3InputBuffer;
+
+        if (data == nullptr)
+        {
+            status = STATUS_SUCCESS; // <- TEST
+            //status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        LogInfo("Echo request output: %s\n", data->strEcho);
+        Irp->IoStatus.Status = CUSTOM_STATUS;
+        Irp->IoStatus.Information = 0;
+        IoCompleteRequest(Irp, IO_NO_INCREMENT);
+        return CUSTOM_STATUS;
+    }
+      // all other codes
+      default:
+        LogInfo("Unrecognized IoControlCode, forwarding to original DeviceControl.\n");
+        return origDeviceControl(tcpipDevObj, Irp);
+    }
+}
+```
+
+After all this is complete, we now have client to kernel communication without creating a driver object.
