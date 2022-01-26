@@ -36,7 +36,11 @@ In our situation, we will manually map our driver into the kernel.  Here's what 
 
 ![](/assets/images/userkernel-copy-of-communication.drawio.png)
 
-As mentioned earlier, since our driver is manually mapped it has no driver object associated with it.  We still want to communicate with our driver though, so we need to find an alternate communication solution. Fortunately, there are many driver objects that already exist for us to use! Through Direct Kernel Object Manipulation (DKOM), we can swap out the pointers in the driver object's `MajorFunction` table to our own. Here's how to do this from project Diglett.
+As mentioned earlier, since our driver is manually mapped it has no driver object associated with it.  We still want to communicate with our driver though, so we need to find an alternate communication solution. Fortunately, there are many driver objects that already exist for us to use! Through Direct Kernel Object Manipulation (DKOM), we can swap out the pointers in the driver object's `MajorFunction` table to our own. 
+
+### Implementation
+
+Here's how to do this from project Diglett.
 
 ```c
 // Driver we want to communicate through
@@ -107,3 +111,9 @@ NTSTATUS Hk_DeviceControl(PDEVICE_OBJECT tcpipDevObj, PIRP Irp)
 After all this is complete, we now have client to kernel communication without creating a driver object. Here's the end result with Diglett making 3 hooks in the driver object.
 
 ![](/assets/images/diglettdrvobjhooks.png)
+
+
+
+### Counter-measures
+
+![](/assets/images/nomadscanspoofed.png)
