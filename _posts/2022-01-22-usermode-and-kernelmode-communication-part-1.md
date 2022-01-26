@@ -17,10 +17,23 @@ People can have confusion on when it's necessary to write code for the *driver* 
 
 ### How Communication Works
 
-Some have had the idea or asked, "Why not write all my code in the driver and call it a day?". In the end, it depends on what functionality the developer needs to provide and what they're willing to sacrifice. It is entirely possible to have a kernel-mode driver without a client, but we will save that for another guide in the future. The normal interface for client and driver communication is handled by the Kernel-Mode I/O Manager. IRP packets are used to send commands and data between them. In order for this interface to work, there needs be a driver object created which is done automatically when the driver is loaded. Things like, manual mapping, don't create driver objects. This is because that instead of using the standard provided mechanism to load a driver, which must be signed, a kernel mapper will: allocate memory in the kernel, copy the image to this memory, and then create a new thread that will then run the entry point of the image. 
+Some have had the idea or asked, "Why not write all my code in the driver and call it a day?". In the end, it depends on what functionality the developer needs to provide and what they're willing to sacrifice. It is entirely possible to have a kernel-mode driver without a client, but we will save that for another guide in the future. The normal interface for client and driver communication is handled by the Kernel-Mode I/O Manager. IRP packets are used to send commands and data between them. In order for this interface to work, there needs be a driver object created which is done automatically when the driver is loaded. Each driver object contains its' own `MajorFunction` table. These major functions are essentially callbacks that are defined by us for various windows api calls.
+
+```c
+  DriverObject->MajorFunction[IRP_MJ_CREATE] = Create;
+  DriverObject->MajorFunction[IRP_MJ_CLOSE] = Close;
+  DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DeviceControl;
+  DriverObject->DriverUnload = Unload;
+```
+
+The important one here is `IRP_MJ_DEVICE_CONTROL` which gets triggered when `DeviceIoControl` is called with a handle to the corresponding device object created in this driver object.
+
+Things like, manual mapping, don't create driver objects. This is because that instead of using the standard provided mechanism to load a driver, which must be signed, a kernel mapper will: allocate memory in the kernel, copy the image to this memory, and then create a new thread that will then run the entry point of the image. 
 
 ### Our Scenario
 
 In our situation, we're going to have a manually mapped driver in the kernel.  Here's what this will look like..
 
 ![](/assets/images/userkernel-copy-of-communication.drawio.png)
+
+As mentioned earlier, since our driver was manually mapped it has no driver object associated with it.  We still want to communicate with our driver though, so we need to find an alternate communication solution. Fortunately,
