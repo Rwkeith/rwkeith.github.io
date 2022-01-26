@@ -11,7 +11,7 @@ Kernel mode programming refers to kernel device drivers running in kernel mode/s
 
 *Credit:  Pavel Yosifovich*
 
-One of the biggest takeaways that can save headaches is that when `IRQL >= DISPATCH_LEVEL`, the memory accessed must be resident  Otherwise, an unhandled page-fault will occur. The scheduler which runs at `DISPATCH_LEVEL`, will not be able to context-switch since the faulting thread is running at the same IRQL and therefore can't be interrupted. By default, userspace applications and drivers run at `PASSIVE_LEVEL`. Another note is that structured exception handling (SEH), will not work when `IRQL >= DISPATCH_LEVEL`.
+One of the biggest takeaways that can save headaches is that when `IRQL >= DISPATCH_LEVEL`, the memory accessed must be resident. Otherwise, an unhandled page-fault will occur. The scheduler which runs at `DISPATCH_LEVEL` will not be able to context-switch. This is because the faulting thread is running at the same IRQL and therefore can't be interrupted. By default, userspace applications and drivers run at `PASSIVE_LEVEL`. Another thing to note is the structured exception handling (SEH) usually provided in windows, will not work when `IRQL >= DISPATCH_LEVEL`.
 
 People can have confusion on when it's necessary to write code for the *driver* versus code that runs on the *client*.  I'll be laying out the core fundamentals here and these can be adjusted based on needs.  Also, we will review the types of communication possible and implement one of these ourselves today.  I **highly** recommend [this](https://voidsec.com/windows-drivers-reverse-engineering-methodology/) article supplement any further questions on the topic of drivers and getting started.
 
