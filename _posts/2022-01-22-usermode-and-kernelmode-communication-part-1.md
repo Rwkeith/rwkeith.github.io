@@ -30,9 +30,9 @@ The important one here is `IRP_MJ_DEVICE_CONTROL` which gets triggered when `Dev
 
 ### Our Scenario
 
-Things like, manual mapping, don't create driver objects. This is because instead of using the standard provided mechanism to load a driver, which must be signed, a kernel mapper will: allocate memory in the kernel, copy the image to memory, and then create a new thread which will run the entry point of the image. 
+A mapper simulates the process of the windows loader. At its core, it allocates memory for an image, copies it to that location, and handles relocations before executing the entrypoint.  In this case, a driver object isn't created. This is different from using the standard provided mechanism to load a driver, which must be signed.
 
-In our situation, we're going to manually map our driver into the kernel.  Here's what this will look like..
+In our situation, we will manually map our driver into the kernel.  Here's what this will look like..
 
 ![](/assets/images/userkernel-copy-of-communication.drawio.png)
 
