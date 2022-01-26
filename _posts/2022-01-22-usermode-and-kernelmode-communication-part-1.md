@@ -30,10 +30,35 @@ The important one here is `IRP_MJ_DEVICE_CONTROL` which gets triggered when `Dev
 
 ### Our Scenario
 
-Things like, manual mapping, don't create driver objects. This is because that instead of using the standard provided mechanism to load a driver, which must be signed, a kernel mapper will: allocate memory in the kernel, copy the image to this memory, and then create a new thread that will then run the entry point of the image. 
+Things like, manual mapping, don't create driver objects. This is because instead of using the standard provided mechanism to load a driver, which must be signed, a kernel mapper will: allocate memory in the kernel, copy the image to memory, and then create a new thread which will run the entry point of the image. 
 
-In our situation, we're going to have a manually mapped driver in the kernel.  Here's what this will look like..
+In our situation, we're going to manually map our driver into the kernel.  Here's what this will look like..
 
 ![](/assets/images/userkernel-copy-of-communication.drawio.png)
 
-As mentioned earlier, since our driver was manually mapped it has no driver object associated with it.  We still want to communicate with our driver though, so we need to find an alternate communication solution. Fortunately,
+As mentioned earlier, since our driver is manually mapped it has no driver object associated with it.  We still want to communicate with our driver though, so we need to find an alternate communication solution. Fortunately, there are many driver objects that already exist for us to use! Through Direct Kernel Object Manipulation (DKOM), we can swap out the pointers in the driver object's `MajorFunction` table to our own. Here's how to do this from project Diglett.
+
+```c
+// Driver we want to communicate through
+RtlInitUnicodeString(&driverName, L"\\Driver\\Null");
+
+// Obtain a reference to the DriverObject
+status = ObReferenceObjectByName(&driverName, OBJ_CASE_INSENSITIVE, NULL, 0,
+    *IoDriverObjectType, KernelMode, NULL, (PVOID*)&DriverObject);
+
+// Hook Null driver's MajorFunctions
+for (int i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++) {
+    //save the original pointer in case we want to restore it later
+    gOriginalDispatchFunctionArray[i] = DriverObject->MajorFunction[i];
+    //replace the pointer with our own pointer
+    if (i == IRP_MJ_DEVICE_CONTROL)
+    {
+        DriverObject->MajorFunction[i] = Hk_DeviceControl;
+        LogInfo("\tHooked IRP_MJ_DEVICE_CONTROL");
+        LogInfo("\t\tOld: %p", gOriginalDispatchFunctionArray[i]);
+        LogInfo("\t\tNew: %p", DriverObject->MajorFunction[i]);
+    }
+}
+```
+
+Now, when the client makes a `DeviceIoControl` 
