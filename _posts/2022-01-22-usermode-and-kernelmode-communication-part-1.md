@@ -1,6 +1,6 @@
 ---
 title: "User to Kernel Mode Communication:  Part 1"
-date: 2022-01-27T10:47:10.560Z
+date: 2022-01-27T10:52:09.536Z
 classes: wide
 ---
 ### Kernel Crash Course
@@ -108,7 +108,9 @@ NTSTATUS Hk_DeviceControl(PDEVICE_OBJECT tcpipDevObj, PIRP Irp)
 }
 ```
 
+
 After all this is complete, we now have client to kernel communication without creating a driver object. Here's the end result with Diglett making 3 hooks in the driver object.
+
 
 ![](/assets/images/diglettdrvobjhooks.png)
 
