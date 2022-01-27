@@ -1,6 +1,6 @@
 ---
 title: "User to Kernel Mode Communication:  Part 1"
-date: 2022-01-22T11:49:59.552Z
+date: 2022-01-27T10:47:10.560Z
 classes: wide
 ---
 ### Kernel Crash Course
