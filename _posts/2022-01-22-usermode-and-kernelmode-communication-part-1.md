@@ -116,4 +116,59 @@ After all this is complete, we now have client to kernel communication without c
 
 ### Counter-measures
 
+I wouldn't feel like this article would be complete if I didn't show how this method of communication could be detected. Anti-cheat software is aware and indeed checks for these driver object hooks. Similarly to the previous detection method used in the article on thread stack-walking, the addresses can once again be used for heuristics.  If any of the addresses point to memory not occupied by any legitimately loaded module, it's suspicious behavior.  Project Nomad handles this effectively by enumerating through all of the driver objects and checking the `IRP_MJ_DEVICE_CONTROL` function table pointer.  It also does a couple more unique checks that are known methods.
+
+```c
+while (NT_SUCCESS(ZwQueryDirectoryObject(h, dirInfo, PAGE_SIZE, TRUE, FALSE, &ulContext, &returnedBytes)))
+{
+    isClean = true;
+    PDRIVER_OBJECT pObj;
+    wchar_t wsDriverName[100] = L"\\Driver\\";
+    wcscat(wsDriverName, dirInfo->ObjectName.Buffer);
+    UNICODE_STRING objName;
+    objName.Length = objName.MaximumLength = wcslen(wsDriverName) * 2;
+    objName.Buffer = wsDriverName;
+    if (NT_SUCCESS(ObReferenceObjectByName(&objName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, NULL, *IoDriverObjectType, KernelMode, nullptr, (PVOID*)&pObj)))
+    {
+        LogInfo("Checking driver object: %ls", wsDriverName);
+        LogInfo("\t\tChecking ->MajorFunction[IRP_MJ_DEVICE_CONTROL]");
+        if (!CheckModulesForAddress(reinterpret_cast<uintptr_t>(pObj->MajorFunction[IRP_MJ_DEVICE_CONTROL]), outProcMods)) {
+            LogInfo("\t\t\t[SUSPICIOUS] %wZ driver has suspicious driver dispatch", pObj->DriverName);
+            isClean = false;
+        }
+
+        LogInfo("\t\tChecking ->DriverStart");
+        if (!CheckModulesForAddress((uintptr_t)pObj->DriverStart, outProcMods)) {
+            LogInfo("\t\t\t[SUSPICIOUS] %wZ driver has suspicious DriverStart", pObj->DriverName);
+            isClean = false;
+        }
+
+        LogInfo("\t\tChecking ->FastIoDispatch");
+        if (reinterpret_cast<uintptr_t>(pObj->FastIoDispatch))
+        {
+            if (!CheckModulesForAddress(reinterpret_cast<uintptr_t>(pObj->FastIoDispatch->FastIoDeviceControl), outProcMods)) {
+                LogInfo("\t\t\t[SUSPICIOUS] %wZ driver has suspicious FastIoDispatch->FastIoDeviceControl", pObj->DriverName);
+                isClean = false;
+            }
+        }
+        else
+        {
+            LogInfo("\t\t\tFastIoDispatch == NULL");
+        }
+
+        if (isClean)
+        {
+            LogInfo("Driver object clean.");
+        }
+        else
+        {
+            suspiciousDrivers++;
+        }
+
+        ObDereferenceObject(pObj);
+    }
+}
+```
+And finally the resulting output from above
+
 ![](/assets/images/nomaddrvobjscan.png)
