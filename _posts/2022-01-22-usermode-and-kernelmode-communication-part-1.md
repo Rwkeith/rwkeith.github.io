@@ -116,4 +116,4 @@ After all this is complete, we now have client to kernel communication without c
 
 ### Counter-measures
 
-![](/assets/images/nomadscanspoofed.png)
+![](/assets/images/nomaddrvobjscan.png)
