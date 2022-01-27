@@ -65,7 +65,7 @@ for (int i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++) {
 }
 ```
 
-Now, when any usermode application makes a `DeviceIoControl` call using a handle to the Null driver's device object, it will invoke `Hk_DeviceControl`. Since any program could be executing our hook, we need to filter out the calls. We can use the data passed in through the Irp packet processed by the I/O manager from our client. The IoControlCode can be defined to something unique for our purposes.
+Now, when any usermode application makes a `DeviceIoControl` call using a handle to the `Null` driver's device object, it will invoke `Hk_DeviceControl`. Since any program could be executing our hook, we need to filter out the calls. We can use the data passed in through the `Irp` packet processed by the I/O manager from our client. The `IoControlCode` can be defined to something unique for our purposes.
 
 ```c
 NTSTATUS Hk_DeviceControl(PDEVICE_OBJECT tcpipDevObj, PIRP Irp)
