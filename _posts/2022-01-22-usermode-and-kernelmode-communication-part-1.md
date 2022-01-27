@@ -112,8 +112,6 @@ After all this is complete, we now have client to kernel communication without c
 
 ![](/assets/images/diglettdrvobjhooks.png)
 
-
-
 ### Counter-measures
 
 It wouldn't feel like this article would be complete if I didn't show how this method of communication could be detected. Anti-cheat software is aware and indeed checks for these driver object hooks. Similarly to the previous detection method used in the article on thread stack-walking, the addresses can once again be used for heuristics.  If any of the addresses point to memory not occupied by any legitimately loaded module, it's suspicious behavior.  Project Nomad handles this effectively by enumerating through all of the driver objects and checking the `IRP_MJ_DEVICE_CONTROL` function table pointer.  It also does a couple more unique checks that are known methods.
@@ -169,6 +167,11 @@ while (NT_SUCCESS(ZwQueryDirectoryObject(h, dirInfo, PAGE_SIZE, TRUE, FALSE, &ul
     }
 }
 ```
+
 And finally the resulting output from above
 
 ![](/assets/images/nomaddrvobjscan.png)
+
+### Hook Types and Conclusion
+
+There are several ways to implement a communication. As we can also see, this method is very easy to detect. Another type of hook which is harder to detect is a `pointer hook` using read/write memory protected regions normally in the '.data' section. These hooks avoid detection since they are performed in memory regions that by default have read and write permissions. This is opposed to a '.text' section style which is an `in-line hook`. Hopefully this article has been a good primer into setting up communication between a manually mapped driver and client. We've discussed threads and communication detection vectors so far and so in our next article our topic will be related to memory. Thank you for reading!
