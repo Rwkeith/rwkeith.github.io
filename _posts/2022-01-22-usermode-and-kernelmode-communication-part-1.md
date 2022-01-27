@@ -116,7 +116,7 @@ After all this is complete, we now have client to kernel communication without c
 
 ### Counter-measures
 
-I wouldn't feel like this article would be complete if I didn't show how this method of communication could be detected. Anti-cheat software is aware and indeed checks for these driver object hooks. Similarly to the previous detection method used in the article on thread stack-walking, the addresses can once again be used for heuristics.  If any of the addresses point to memory not occupied by any legitimately loaded module, it's suspicious behavior.  Project Nomad handles this effectively by enumerating through all of the driver objects and checking the `IRP_MJ_DEVICE_CONTROL` function table pointer.  It also does a couple more unique checks that are known methods.
+It wouldn't feel like this article would be complete if I didn't show how this method of communication could be detected. Anti-cheat software is aware and indeed checks for these driver object hooks. Similarly to the previous detection method used in the article on thread stack-walking, the addresses can once again be used for heuristics.  If any of the addresses point to memory not occupied by any legitimately loaded module, it's suspicious behavior.  Project Nomad handles this effectively by enumerating through all of the driver objects and checking the `IRP_MJ_DEVICE_CONTROL` function table pointer.  It also does a couple more unique checks that are known methods.
 
 ```c
 while (NT_SUCCESS(ZwQueryDirectoryObject(h, dirInfo, PAGE_SIZE, TRUE, FALSE, &ulContext, &returnedBytes)))
