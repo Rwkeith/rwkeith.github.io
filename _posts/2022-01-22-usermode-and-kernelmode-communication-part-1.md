@@ -3,21 +3,29 @@ title: "User to Kernel Mode Communication:  Part 1"
 date: 2022-01-27T10:52:09.536Z
 classes: wide
 ---
+### I﻿ntroduction
+
+This article aims to provide an understanding of user-to-kernel communication on the x86 platform in Windows. If you already have some general knowledge, feel free to skip ahead.
+
 ### Kernel Crash Course
 
-Kernel mode programming refers to kernel device drivers running in kernel mode/space. When developing for the kernel, one of the first things to grasp is when and how to write code here. When something fails (an unhandled exception occurs), the system will bugcheck (BSOD). This is a stark contrast from usermode, where when the same thing occurs, the application simply terminates. Which is why a fundamental rule is to only write code that runs in the kernel because it needs to perform a kernel level task. We will just refer to our kernel program as the *driver*, and our usermode program as a *client*. Drivers are classically written in *C*. Writing in *C* as opposed to *C++* means there is less abstraction involved. This generally means you'll write more code, but to the advantage that the program's behavior is more explicitly defined by you. Since I don't want this article to revolve around entry level topics about the differences, here's a quick rundown.
+Kernel mode programming involves writing kernel device drivers that run in kernel mode. It's crucial to understand when and how to write code for the kernel. Unlike user mode, where an unhandled exception causes the application to terminate, a kernel mode failure leads to a system bugcheck (BSOD). Therefore, only write kernel code when it’s necessary for kernel-level tasks. We'll refer to our kernel program as the driver and our user mode program as the client. Drivers are typically written in C, but there are also some interesting workarounds to build using C++.
 
 ![](/assets/images/kernel_vs_user.png)
 
-*Credit:  Pavel Yosifovich*
 
-One of the key takeaways that can save headaches is that when `IRQL >= DISPATCH_LEVEL`, the memory accessed must be resident. Otherwise, an unhandled page-fault will occur. The scheduler which runs at `DISPATCH_LEVEL` will not be able to context-switch. This is because the faulting thread is running at the same IRQL and therefore can't be interrupted. By default, userspace applications and drivers run at `PASSIVE_LEVEL`. Another thing to note is the structured exception handling (SEH) usually provided in windows, will not work when `IRQL >= DISPATCH_LEVEL`.
 
-There can be some uncertainty for choosing to implement certain functionality in the *driver* versus on the *client*.  I'll be laying out some core fundamentals here and these can be adjusted based on needs.  Also, we will review the types of communication possible and implement one of these ourselves today.  I **highly** recommend [this](https://voidsec.com/windows-drivers-reverse-engineering-methodology/) article supplement any further questions on the topic of drivers and getting started.
+One key point to remember is that when `IRQL >= DISPATCH_LEVEL`, the accessed memory must be resident to avoid unhandled page-faults. The scheduler, running at `DISPATCH_LEVEL`, cannot context-switch because the faulting thread runs at the same IRQL and can't be interrupted. By default, both userspace applications and drivers run at `PASSIVE_LEVEL`. Note that structured exception handling (SEH) in Windows does not work at `IRQL >= DISPATCH_LEVEL`.
+
+
+
+Choosing whether to implement certain functionality in the driver or client can be uncertain. Here, we’ll outline some core fundamentals which can be adjusted based on specific needs. We'll also review possible communication types and implement one of them. I **highly** recommend [this](https://voidsec.com/windows-drivers-reverse-engineering-methodology/) article supplement any further questions on the topic of drivers and getting started.
 
 ### How Communication Works
 
-Some may wonder, "Why not write all my code in the driver and call it a day?". In the end, it depends on what functionality the developer needs to provide and what they're willing to sacrifice. It is entirely possible to have a kernel-mode driver without a client, but we will save that for another guide in the future. The normal interface for client and driver communication is handled by the Kernel-Mode I/O Manager. IRP packets are used to send commands and data between them. In order for this interface to work, there needs be a driver object created which is done automatically when the driver is loaded. Each driver object contains its' own `MajorFunction` table. These major functions are essentially callbacks that are defined by us for various windows api calls.
+A common question is why not write all code in the driver. The answer depends on the functionality required and the trade-offs you're willing to make. While it's possible to have a kernel-mode driver without a client, we'll focus on the typical client-driver communication, which the Kernel-Mode I/O Manager handles using IRP packets.
+
+To enable this interface, a driver object must be created when the driver loads, containing its own `MajorFunction` table. These major functions are callbacks we define for various Windows API calls:
 
 ```c
   DriverObject->MajorFunction[IRP_MJ_CREATE] = Create;
@@ -26,11 +34,11 @@ Some may wonder, "Why not write all my code in the driver and call it a day?". I
   DriverObject->DriverUnload = Unload;
 ```
 
-The important one here is `IRP_MJ_DEVICE_CONTROL` which gets triggered when `DeviceIoControl` is called with a handle to the corresponding device object created in this driver object.
+The critical one here is `IRP_MJ_DEVICE_CONTROL`, which triggers when `DeviceIoControl` is called with a handle to the corresponding device object.
 
 ### Our Scenario
 
-A mapper simulates the process of the windows loader. At its core, it allocates memory for an image, copies it to that location, and handles relocations before executing the entrypoint.  In this case, a driver object isn't created. This is different from using the standard provided mechanism to load a driver, which must be signed.
+A mapper simulates the Windows loader by allocating memory for an image, copying it, handling relocations, and executing the entry point. Unlike standard driver loading, this method doesn’t create a driver object. We will manually map our driver into the kernel and communicate with it using existing driver objects via Direct Kernel Object Manipulation (DKOM).
 
 In our situation, we will manually map our driver into the kernel.  Here's what this will look like..
 
@@ -40,7 +48,7 @@ As mentioned earlier, since our driver is manually mapped it has no driver objec
 
 ### Implementation
 
-Here's how to do this from project Diglett.
+Here's an example from project [Diglett](https://github.com/Rwkeith/Diglett):
 
 ```c
 // Driver we want to communicate through
@@ -65,7 +73,9 @@ for (int i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++) {
 }
 ```
 
-Now, when any usermode application makes a `DeviceIoControl` call using a handle to the `Null` driver's device object, it will invoke `Hk_DeviceControl`. Since any program could be executing our hook, we need to filter out the calls. We can use the data passed in through the `Irp` packet processed by the I/O manager from our client. The `IoControlCode` can be defined to something unique for our purposes.
+
+
+Now, any user mode application making a `DeviceIoControl` call using a handle to the `Null` driver's device object will invoke `Hk_DeviceControl`. Filter calls using the data passed through the IRP packet processed by the I/O manager from our client.  A custom `IoControlCode` can be defined as a magic/cookie value to filter against.
 
 ```c
 NTSTATUS Hk_DeviceControl(PDEVICE_OBJECT tcpipDevObj, PIRP Irp)
@@ -108,9 +118,7 @@ NTSTATUS Hk_DeviceControl(PDEVICE_OBJECT tcpipDevObj, PIRP Irp)
 }
 ```
 
-
 After all this is complete, we now have client to kernel communication without creating a driver object. Here's the end result with Diglett making 3 hooks in the driver object.
-
 
 ![](/assets/images/diglettdrvobjhooks.png)
 
@@ -176,4 +184,4 @@ And finally the resulting output from above
 
 ### Hook Types and Conclusion
 
-There are several ways to implement a communication. As we can also see, this method is very easy to detect. Another type of hook which is harder to detect is a `pointer hook` using read/write memory protected regions normally in the `.data` section. These hooks avoid detection since they are performed in memory regions that by default have read and write permissions. This is opposed to a '.text' section style which is an `in-line hook`. Hopefully this article has been a good primer into setting up communication between a manually mapped driver and client. We've discussed threads and communication detection vectors so far and so in our next article our topic will be related to memory. Thank you for reading!
+Various communication methods exist, some easier to detect than others. `Pointer hooks` in read/write protected regions are harder to detect compared to `in-line hooks` in the `.text` section. This article provides a primer on setting up communication between a manually mapped driver and client. Next, we’ll discuss memory-related topics. Thank you for reading!
